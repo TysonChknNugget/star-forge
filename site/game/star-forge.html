@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Star Forge — Clicker</title>
+<style>
+  :root { --bg:#0b0d1a; --panel:#151933; --line:#2a3060; --text:#e8eaff; --muted:#8b91c7; --gold:#ffcc4d; --accent:#7c8cff; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,Segoe UI,sans-serif; background:radial-gradient(circle at 30% 20%,#1a1f45,var(--bg) 60%); color:var(--text); min-height:100vh; display:flex; }
+  main { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px; user-select:none; }
+  h1 { margin:0 0 4px; font-size:28px; letter-spacing:.04em; }
+  #count { font-size:44px; font-weight:800; color:var(--gold); font-variant-numeric:tabular-nums; }
+  #rate { color:var(--muted); margin-bottom:24px; }
+  #star { width:220px; height:220px; border:none; border-radius:50%; cursor:pointer; position:relative;
+    background:radial-gradient(circle at 40% 35%,#fff6c9,#ffcc4d 35%,#ff8a3d 70%,#a33c1c);
+    box-shadow:0 0 60px #ffb84d88,0 0 120px #ff8a3d44; transition:transform .06s; }
+  #star:hover { transform:scale(1.04); }
+  #star:active { transform:scale(.94); }
+  .pop { position:fixed; pointer-events:none; color:var(--gold); font-weight:800; font-size:20px; animation:rise .8s ease-out forwards; }
+  @keyframes rise { to { transform:translateY(-70px); opacity:0; } }
+  aside { width:340px; background:var(--panel); border-left:1px solid var(--line); padding:20px; overflow-y:auto; max-height:100vh; }
+  aside h2 { margin:0 0 12px; font-size:16px; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); }
+  .item { width:100%; display:flex; justify-content:space-between; align-items:center; gap:10px; text-align:left;
+    background:#1d2245; color:var(--text); border:1px solid var(--line); border-radius:10px; padding:12px; margin-bottom:10px; cursor:pointer; font:inherit; }
+  .item:hover:not(:disabled) { border-color:var(--accent); }
+  .item:disabled { opacity:.45; cursor:not-allowed; }
+  .item b { display:block; }
+  .item small { color:var(--muted); }
+  .owned { font-size:22px; font-weight:800; color:var(--accent); min-width:32px; text-align:right; }
+  .cost { color:var(--gold); }
+  #reset { margin-top:16px; background:none; border:1px solid var(--line); color:var(--muted); border-radius:8px; padding:8px 12px; cursor:pointer; }
+  @media (max-width:760px){ body{flex-direction:column;} aside{width:100%; max-height:none; border-left:none; border-top:1px solid var(--line);} }
+</style>
+</head>
+<body>
+<main>
+  <h1>✦ Star Forge</h1>
+  <div id="count">0</div>
+  <div id="rate">0 stardust / sec</div>
+  <button id="star" aria-label="Click the star"></button>
+  <p style="color:var(--muted)">Click the star to gather stardust.</p>
+</main>
+<aside>
+  <h2>Upgrades</h2>
+  <div id="shop"></div>
+  <button id="reset">Reset progress</button>
+</aside>
+<script>
+const SAVE_KEY = 'starForgeSave_v1';
+const UPGRADES = [
+  { id:'lens',     name:'Focusing Lens',   desc:'+1 per click',     base:15,     click:1 },
+  { id:'drone',    name:'Dust Drone',      desc:'+1 / sec',         base:50,     rate:1 },
+  { id:'collector',name:'Solar Collector', desc:'+8 / sec',         base:600,    rate:8 },
+  { id:'gauntlet', name:'Plasma Gauntlet', desc:'+10 per click',    base:2500,   click:10 },
+  { id:'station',  name:'Orbital Station', desc:'+60 / sec',        base:9000,   rate:60 },
+  { id:'nebula',   name:'Nebula Harvester',desc:'+400 / sec',       base:110000, rate:400 },
+];
+
+let state = { dust:0, owned:{} };
+try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s) state = s; } catch {}
+
+const $ = id => document.getElementById(id);
+const fmt = n => n < 1000 ? Math.floor(n).toString()
+  : n.toLocaleString('en-US', { notation:'compact', maximumFractionDigits:2 });
+const owned = id => state.owned[id] || 0;
+const cost = u => Math.ceil(u.base * Math.pow(1.15, owned(u.id)));
+const perClick = () => 1 + UPGRADES.reduce((s,u) => s + (u.click||0)*owned(u.id), 0);
+const perSec   = () => UPGRADES.reduce((s,u) => s + (u.rate||0)*owned(u.id), 0);
+
+// Build shop
+UPGRADES.forEach(u => {
+  const b = document.createElement('button');
+  b.className = 'item'; b.id = 'up-' + u.id;
+  b.innerHTML = `<span><b>${u.name}</b><small>${u.desc}</small><br><span class="cost"></span></span><span class="owned"></span>`;
+  b.onclick = () => { const c = cost(u); if (state.dust >= c) { state.dust -= c; state.owned[u.id] = owned(u.id) + 1; render(); save(); } };
+  $('shop').appendChild(b);
+});
+
+$('star').addEventListener('click', e => {
+  const gain = perClick();
+  state.dust += gain;
+  const p = document.createElement('div');
+  p.className = 'pop'; p.textContent = '+' + fmt(gain);
+  p.style.left = (e.clientX - 10) + 'px'; p.style.top = (e.clientY - 20) + 'px';
+  document.body.appendChild(p); setTimeout(() => p.remove(), 800);
+  render();
+});
+
+$('reset').onclick = () => { if (confirm('Erase all progress?')) { state = { dust:0, owned:{} }; save(); render(); } };
+
+function render() {
+  $('count').textContent = fmt(state.dust);
+  $('rate').textContent = `${fmt(perSec())} stardust / sec · ${fmt(perClick())} per click`;
+  UPGRADES.forEach(u => {
+    const b = $('up-' + u.id), c = cost(u);
+    b.disabled = state.dust < c;
+    b.querySelector('.cost').textContent = 'Cost: ' + fmt(c);
+    b.querySelector('.owned').textContent = owned(u.id);
+  });
+  document.title = fmt(state.dust) + ' stardust — Star Forge';
+}
+function save() { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); }
+
+// Game loop: 10 ticks/sec, autosave every 5s
+let last = performance.now();
+setInterval(() => { const now = performance.now(); state.dust += perSec() * (now - last) / 1000; last = now; render(); }, 100);
+setInterval(save, 5000);
+window.addEventListener('beforeunload', save);
+render();
+</script>
+</body>
+</html>

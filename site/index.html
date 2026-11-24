@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Star Forge — Free Clicker Game</title>
+<style>
+  :root { --bg:#0b0d1a; --panel:#151933; --line:#2a3060; --text:#e8eaff; --muted:#8b91c7; --gold:#ffcc4d; --accent:#7c8cff; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,Segoe UI,sans-serif; background:radial-gradient(circle at 50% 0%,#1d2350,var(--bg) 55%); color:var(--text); line-height:1.6; }
+  .wrap { max-width:900px; margin:0 auto; padding:0 24px; }
+  header { text-align:center; padding:80px 0 48px; }
+  .orb { width:120px; height:120px; margin:0 auto 24px; border-radius:50%;
+    background:radial-gradient(circle at 40% 35%,#fff6c9,#ffcc4d 35%,#ff8a3d 70%,#a33c1c);
+    box-shadow:0 0 50px #ffb84d88; animation:pulse 2.4s ease-in-out infinite; }
+  @keyframes pulse { 50% { transform:scale(1.06); box-shadow:0 0 80px #ffb84daa; } }
+  h1 { font-size:48px; margin:0; letter-spacing:.02em; }
+  .tag { color:var(--muted); font-size:19px; margin:8px 0 32px; }
+  .btns { display:flex; gap:14px; justify-content:center; flex-wrap:wrap; }
+  .btn { display:inline-block; padding:14px 26px; border-radius:12px; font-weight:700; text-decoration:none; font-size:17px; }
+  .primary { background:var(--gold); color:#2a1a00; }
+  .primary:hover { background:#ffd970; }
+  .ghost { border:1px solid var(--line); color:var(--text); }
+  .ghost:hover { border-color:var(--accent); }
+  .meta { color:var(--muted); font-size:14px; margin-top:12px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px; margin:24px 0 56px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:20px; }
+  .card h3 { margin:0 0 6px; }
+  .card p { margin:0; color:var(--muted); }
+  h2 { margin-top:0; }
+  ol { color:var(--muted); } ol b { color:var(--text); }
+  footer { text-align:center; color:var(--muted); font-size:14px; padding:40px 0; border-top:1px solid var(--line); margin-top:40px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="orb"></div>
+    <h1>Star Forge</h1>
+    <p class="tag">A free idle clicker. Click a star, build a galaxy-wide stardust empire.</p>
+    <div class="btns">
+      <a class="btn primary" href="downloads/StarForge.exe" download>⬇ Download for Windows</a>
+      <a class="btn ghost" href="game/star-forge.html">▶ Play in browser</a>
+    </div>
+    <div class="meta">Version 1.0 · Windows 10/11 · 14 KB · No install needed<br>
+      Mac or Linux? <a href="downloads/StarForge.zip" download style="color:var(--accent)">Download the HTML version (.zip)</a></div>
+  </header>
+
+  <section class="grid">
+    <div class="card"><h3>✦ Click to gather</h3><p>Every click on the star earns stardust. Upgrade your clicks to earn more.</p></div>
+    <div class="card"><h3>⚙ Automate</h3><p>Buy drones, stations and harvesters that earn stardust while you watch.</p></div>
+    <div class="card"><h3>💾 Auto-save</h3><p>Progress saves automatically, so you can close it and pick up where you left off.</p></div>
+  </section>
+
+  <section class="card" style="margin-bottom:24px">
+    <h2>How to play the download</h2>
+    <ol>
+      <li>Click <b>Download for Windows</b> to get <b>StarForge.exe</b>.</li>
+      <li>Double-click it. The game opens in its own window and works offline.</li>
+      <li>If Windows shows <b>"Windows protected your PC"</b>, click <b>More info → Run anyway</b>. This appears for any new game that isn't code-signed.</li>
+    </ol>
+    <p style="color:var(--muted);margin:0">Mac/Linux: unzip <b>StarForge.zip</b> and open <b>star-forge.html</b> in any browser.</p>
+  </section>
+
+  <footer>© 2026 Star Forge</footer>
+</div>
+</body>
+</html>

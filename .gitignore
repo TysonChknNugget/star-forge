@@ -1,0 +1,4 @@
+# Build output (the published copy lives in site/downloads/)
+desktop/StarForge.exe
+# Local Claude settings
+.claude/
