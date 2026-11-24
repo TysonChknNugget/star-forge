@@ -3,111 +3,707 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Star Forge — Clicker</title>
+<title>Star Forge</title>
 <style>
-  :root { --bg:#0b0d1a; --panel:#151933; --line:#2a3060; --text:#e8eaff; --muted:#8b91c7; --gold:#ffcc4d; --accent:#7c8cff; }
+  :root { --bg:#070914; --panel:#10142a; --panel2:#171c3a; --line:#262c58; --text:#eef0ff; --muted:#8d93c9; --gold:#ffcc4d; --accent:#8c9bff; }
   * { box-sizing:border-box; }
-  body { margin:0; font-family:system-ui,Segoe UI,sans-serif; background:radial-gradient(circle at 30% 20%,#1a1f45,var(--bg) 60%); color:var(--text); min-height:100vh; display:flex; }
-  main { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px; user-select:none; }
-  h1 { margin:0 0 4px; font-size:28px; letter-spacing:.04em; }
-  #count { font-size:44px; font-weight:800; color:var(--gold); font-variant-numeric:tabular-nums; }
-  #rate { color:var(--muted); margin-bottom:24px; }
-  #star { width:220px; height:220px; border:none; border-radius:50%; cursor:pointer; position:relative;
-    background:radial-gradient(circle at 40% 35%,#fff6c9,#ffcc4d 35%,#ff8a3d 70%,#a33c1c);
-    box-shadow:0 0 60px #ffb84d88,0 0 120px #ff8a3d44; transition:transform .06s; }
-  #star:hover { transform:scale(1.04); }
-  #star:active { transform:scale(.94); }
-  .pop { position:fixed; pointer-events:none; color:var(--gold); font-weight:800; font-size:20px; animation:rise .8s ease-out forwards; }
-  @keyframes rise { to { transform:translateY(-70px); opacity:0; } }
-  aside { width:340px; background:var(--panel); border-left:1px solid var(--line); padding:20px; overflow-y:auto; max-height:100vh; }
-  aside h2 { margin:0 0 12px; font-size:16px; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); }
-  .item { width:100%; display:flex; justify-content:space-between; align-items:center; gap:10px; text-align:left;
-    background:#1d2245; color:var(--text); border:1px solid var(--line); border-radius:10px; padding:12px; margin-bottom:10px; cursor:pointer; font:inherit; }
-  .item:hover:not(:disabled) { border-color:var(--accent); }
-  .item:disabled { opacity:.45; cursor:not-allowed; }
-  .item b { display:block; }
-  .item small { color:var(--muted); }
-  .owned { font-size:22px; font-weight:800; color:var(--accent); min-width:32px; text-align:right; }
-  .cost { color:var(--gold); }
-  #reset { margin-top:16px; background:none; border:1px solid var(--line); color:var(--muted); border-radius:8px; padding:8px 12px; cursor:pointer; }
-  @media (max-width:760px){ body{flex-direction:column;} aside{width:100%; max-height:none; border-left:none; border-top:1px solid var(--line);} }
+  html, body { height:100%; }
+  body { margin:0; font-family:system-ui,"Segoe UI",sans-serif; background:var(--bg); color:var(--text);
+    display:flex; overflow:hidden; user-select:none; -webkit-user-select:none; }
+
+  /* ---------- Stage (left) ---------- */
+  #stage { position:relative; flex:1; min-width:0; overflow:hidden; }
+  #fx { position:absolute; inset:0; width:100%; height:100%; display:block; }
+  #hud { position:absolute; top:16px; left:0; right:0; text-align:center; pointer-events:none; z-index:3; }
+  #hud h1 { margin:0; font-size:13px; letter-spacing:.4em; text-transform:uppercase; color:var(--muted); font-weight:700; }
+  #count { font-size:54px; font-weight:900; color:var(--gold); font-variant-numeric:tabular-nums; line-height:1.1;
+    text-shadow:0 0 28px #ffb84d77; transition:transform .08s; }
+  #count.kick { transform:scale(1.06); }
+  #count small { font-size:17px; color:var(--muted); font-weight:600; margin-left:6px; }
+  #rate { color:var(--muted); font-size:14px; }
+  #rate b { color:var(--text); }
+  #buffs { display:flex; gap:8px; justify-content:center; margin-top:8px; min-height:26px; }
+  .buff { background:#ffcc4d1f; border:1px solid #ffcc4d88; color:var(--gold); border-radius:20px; padding:3px 12px;
+    font-size:13px; font-weight:800; animation:glow 1s ease-in-out infinite alternate; }
+  @keyframes glow { to { box-shadow:0 0 16px #ffcc4d77; } }
+
+  #toasts { position:absolute; right:16px; bottom:16px; display:flex; flex-direction:column; gap:10px; z-index:5; pointer-events:none; }
+  .toast { display:flex; gap:12px; align-items:center; background:linear-gradient(135deg,#1d2350f0,#151a3af0);
+    border:1px solid #ffcc4d88; border-radius:14px; padding:10px 16px 10px 12px; min-width:250px; max-width:320px;
+    box-shadow:0 10px 30px #0008,0 0 20px #ffcc4d33; animation:toastIn .45s cubic-bezier(.2,1.4,.4,1); }
+  .toast.out { animation:toastOut .4s ease-in forwards; }
+  .toast .ti { font-size:30px; width:40px; height:40px; display:grid; place-items:center; }
+  .toast .ti img { width:36px; height:36px; }
+  .toast b { display:block; font-size:14px; }
+  .toast span { color:var(--muted); font-size:13px; }
+  .toast small { color:var(--gold); font-size:10px; letter-spacing:.15em; text-transform:uppercase; font-weight:800; }
+  @keyframes toastIn { from { transform:translateX(120%) scale(.8); opacity:0; } }
+  @keyframes toastOut { to { transform:translateX(120%); opacity:0; } }
+
+  /* ---------- Sidebar (right) ---------- */
+  aside { width:360px; background:var(--panel); border-left:1px solid var(--line); display:flex; flex-direction:column; z-index:4; }
+  .tabs { display:flex; border-bottom:1px solid var(--line); }
+  .tabs button { flex:1; background:none; border:none; color:var(--muted); font:inherit; font-weight:700; padding:14px 0;
+    cursor:pointer; border-bottom:3px solid transparent; }
+  .tabs button.on { color:var(--text); border-bottom-color:var(--gold); }
+  .tabs .pill { background:var(--panel2); border-radius:10px; padding:1px 7px; font-size:12px; margin-left:4px; }
+  #buyAmt { display:flex; gap:6px; align-items:center; padding:12px 16px 4px; color:var(--muted); font-size:13px; }
+  #buyAmt button { background:var(--panel2); border:1px solid var(--line); color:var(--muted); border-radius:8px; padding:4px 12px;
+    font:inherit; font-weight:700; cursor:pointer; }
+  #buyAmt button.on { color:#2a1a00; background:var(--gold); border-color:var(--gold); }
+  .scroll { flex:1; overflow-y:auto; padding:8px 16px 16px; }
+
+  .item { width:100%; display:flex; align-items:center; gap:12px; text-align:left; position:relative;
+    background:var(--panel2); color:var(--text); border:1px solid var(--line); border-radius:12px; padding:10px 12px;
+    margin-bottom:8px; cursor:pointer; font:inherit; transition:border-color .15s, transform .1s, box-shadow .2s; }
+  .item:hover { transform:translateX(-3px); }
+  .item.afford { border-color:#ffcc4d99; box-shadow:0 0 14px #ffcc4d22; }
+  .item.poor { opacity:.6; }
+  .item.locked { opacity:.45; cursor:default; }
+  .item.locked .icon img { filter:brightness(0) opacity(.6); }
+  .item.bump { animation:bump .3s cubic-bezier(.2,1.6,.4,1); }
+  .item.nope { animation:nope .3s; }
+  @keyframes bump { 40% { transform:scale(1.05); box-shadow:0 0 26px #ffcc4d88; } }
+  @keyframes nope { 25% { transform:translateX(-6px); } 75% { transform:translateX(6px); } }
+  .icon { width:48px; height:48px; flex:none; border-radius:10px; display:grid; place-items:center;
+    background:radial-gradient(circle,#ffffff14,transparent 70%); }
+  .icon img { width:42px; height:42px; }
+  .info { flex:1; min-width:0; }
+  .name { font-weight:800; }
+  .desc { color:var(--muted); font-size:12.5px; }
+  .mile { color:var(--accent); font-size:11.5px; }
+  .cost { color:var(--gold); font-weight:700; font-size:13.5px; margin-top:2px; }
+  .item.poor .cost { color:#d77; }
+  .owned { font-size:26px; font-weight:900; color:var(--accent); min-width:36px; text-align:right; font-variant-numeric:tabular-nums; }
+
+  #achs { display:grid; grid-template-columns:repeat(auto-fill,minmax(70px,1fr)); gap:8px; }
+  .ach { aspect-ratio:1; border-radius:12px; background:var(--panel2); border:1px solid var(--line); display:grid; place-items:center;
+    font-size:28px; position:relative; }
+  .ach.lock { filter:grayscale(1) brightness(.5); }
+  .ach.got { border-color:#ffcc4d88; box-shadow:inset 0 0 18px #ffcc4d22; }
+  #achInfo { color:var(--muted); font-size:13px; margin:0 0 10px; min-height:36px; }
+  #achInfo b { color:var(--text); }
+
+  footer { border-top:1px solid var(--line); padding:10px 16px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  footer button { background:none; border:1px solid var(--line); color:var(--muted); border-radius:8px; padding:6px 10px; cursor:pointer; font:inherit; font-size:13px; }
+  footer button:hover { color:var(--text); border-color:var(--accent); }
+  #stats { width:100%; color:var(--muted); font-size:12px; }
+
+  /* ---------- Welcome-back modal ---------- */
+  #modal { position:fixed; inset:0; background:#0009; display:grid; place-items:center; z-index:10; backdrop-filter:blur(3px); }
+  #modal[hidden] { display:none; }
+  #modal .card { background:var(--panel); border:1px solid #ffcc4d88; border-radius:18px; padding:28px 36px; text-align:center;
+    box-shadow:0 0 60px #ffcc4d33; animation:toastIn .5s cubic-bezier(.2,1.4,.4,1); }
+  #modal h2 { margin:6px 0; }
+  #modal p { color:var(--muted); margin:0; }
+  #offAmt { font-size:38px; font-weight:900; color:var(--gold); margin:10px 0 18px; }
+  #collect { background:var(--gold); color:#2a1a00; border:none; border-radius:12px; padding:12px 30px; font:inherit; font-weight:800; font-size:17px; cursor:pointer; }
+
+  @media (max-width:760px) {
+    body { flex-direction:column; overflow:auto; }
+    #stage { flex:none; height:70vh; }
+    aside { width:100%; border-left:none; border-top:1px solid var(--line); }
+  }
 </style>
 </head>
 <body>
-<main>
-  <h1>✦ Star Forge</h1>
-  <div id="count">0</div>
-  <div id="rate">0 stardust / sec</div>
-  <button id="star" aria-label="Click the star"></button>
-  <p style="color:var(--muted)">Click the star to gather stardust.</p>
-</main>
+<div id="stage">
+  <canvas id="fx"></canvas>
+  <div id="hud">
+    <h1>✦ Star Forge ✦</h1>
+    <div id="count">0<small>stardust</small></div>
+    <div id="rate"></div>
+    <div id="buffs"></div>
+  </div>
+  <div id="toasts"></div>
+</div>
+
 <aside>
-  <h2>Upgrades</h2>
-  <div id="shop"></div>
-  <button id="reset">Reset progress</button>
+  <div class="tabs">
+    <button data-tab="shop" class="on">Machines</button>
+    <button data-tab="ach">Achievements <span class="pill" id="achCount">0</span></button>
+  </div>
+  <div id="buyAmt">Buy: <button data-n="1" class="on">×1</button><button data-n="10">×10</button><button data-n="max">Max</button></div>
+  <div class="scroll" id="shopWrap"><div id="shop"></div></div>
+  <div class="scroll" id="achWrap" hidden><p id="achInfo">Hover a badge to see how to earn it.</p><div id="achs"></div></div>
+  <footer>
+    <button id="mute"></button>
+    <button id="reset">Reset progress</button>
+    <div id="stats"></div>
+  </footer>
 </aside>
+
+<div id="modal" hidden>
+  <div class="card">
+    <div style="font-size:44px">🌙</div>
+    <h2>Welcome back!</h2>
+    <p>While you were away, your machines gathered</p>
+    <div id="offAmt"></div>
+    <button id="collect">Collect ✦</button>
+  </div>
+</div>
+
 <script>
-const SAVE_KEY = 'starForgeSave_v1';
-const UPGRADES = [
-  { id:'lens',     name:'Focusing Lens',   desc:'+1 per click',     base:15,     click:1 },
-  { id:'drone',    name:'Dust Drone',      desc:'+1 / sec',         base:50,     rate:1 },
-  { id:'collector',name:'Solar Collector', desc:'+8 / sec',         base:600,    rate:8 },
-  { id:'gauntlet', name:'Plasma Gauntlet', desc:'+10 per click',    base:2500,   click:10 },
-  { id:'station',  name:'Orbital Station', desc:'+60 / sec',        base:9000,   rate:60 },
-  { id:'nebula',   name:'Nebula Harvester',desc:'+400 / sec',       base:110000, rate:400 },
+'use strict';
+const $ = id => document.getElementById(id);
+const rand = (a, b) => a + Math.random() * (b - a);
+const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+
+/* =====================================================================
+   Icons (inline SVG, used in the shop AND drawn orbiting the star)
+   ===================================================================== */
+const SVG = {
+  lens: `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><radialGradient id='g' cx='.35' cy='.3'><stop offset='0' stop-color='#fff'/><stop offset='.5' stop-color='#9fe1ff'/><stop offset='1' stop-color='#2f7fd1'/></radialGradient></defs><circle cx='32' cy='32' r='24' fill='url(#g)' stroke='#cfefff' stroke-width='4'/><path d='M20 27a14 14 0 0 1 10-10' stroke='#fff' stroke-width='4' fill='none' stroke-linecap='round'/></svg>`,
+  drone: `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect x='3' y='24' width='15' height='16' rx='3' fill='#2fbf71' stroke='#bfffd9' stroke-width='2'/><rect x='46' y='24' width='15' height='16' rx='3' fill='#2fbf71' stroke='#bfffd9' stroke-width='2'/><rect x='16' y='30' width='32' height='4' fill='#9aa3c7'/><circle cx='32' cy='32' r='13' fill='#d9ffe9' stroke='#2fbf71' stroke-width='4'/><circle cx='32' cy='32' r='5' fill='#0a8f4a'/></svg>`,
+  collector: `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect x='6' y='14' width='52' height='38' rx='4' fill='#1d3a8a' stroke='#ffd45c' stroke-width='4'/><path d='M23 14v38M41 14v38M6 33h52' stroke='#ffd45c' stroke-width='3'/><circle cx='52' cy='12' r='8' fill='#fff3b0'/></svg>`,
+  gauntlet: `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><polygon points='32,4 56,18 56,46 32,60 8,46 8,18' fill='#5a1a6e' stroke='#ff7ce0' stroke-width='4'/><path d='M37 11 L19 36 h12 l-5 17 l19-26 h-12z' fill='#ffe14d' stroke='#fff6b0' stroke-width='1.5'/></svg>`,
+  station: `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><ellipse cx='32' cy='32' rx='28' ry='12' fill='none' stroke='#9fb2ff' stroke-width='6'/><rect x='30' y='4' width='4' height='16' fill='#9fb2ff'/><rect x='30' y='44' width='4' height='16' fill='#9fb2ff'/><circle cx='32' cy='32' r='12' fill='#dfe6ff' stroke='#5867c9' stroke-width='3'/><circle cx='32' cy='32' r='4' fill='#5867c9'/></svg>`,
+  nebula: `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='23' cy='27' r='17' fill='#b05cff' opacity='.85'/><circle cx='41' cy='25' r='15' fill='#ff5ca8' opacity='.8'/><circle cx='32' cy='41' r='17' fill='#5c8cff' opacity='.8'/><circle cx='32' cy='32' r='6' fill='#fff'/></svg>`,
+  forge: `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><polygon points='32,3 53,24 32,61 11,24' fill='#2fd8ec' stroke='#e8ffff' stroke-width='3' stroke-linejoin='round'/><polygon points='32,3 40,24 32,61 24,24' fill='#c4fcff' opacity='.75'/><path d='M11 24h42' stroke='#e8ffff' stroke-width='3'/></svg>`,
+  wormhole: `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='28' fill='#1a0b33' stroke='#c77dff' stroke-width='4'/><circle cx='32' cy='32' r='19' fill='none' stroke='#7b5cff' stroke-width='4' stroke-dasharray='20 8'/><circle cx='32' cy='32' r='10' fill='none' stroke='#4fd1ff' stroke-width='4'/><circle cx='32' cy='32' r='4' fill='#fff'/></svg>`,
+};
+const svgUrl = s => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(s);
+
+/* =====================================================================
+   Game data
+   ===================================================================== */
+const B = [
+  { id:'lens',      name:'Focusing Lens',    base:15,    click:1,     color:'#9fe1ff', flavor:'Bends starlight into your fingertips.' },
+  { id:'drone',     name:'Dust Drone',       base:50,    rate:1,      color:'#6dffa8', flavor:'Tiny robots that sweep up stray stardust.' },
+  { id:'collector', name:'Solar Collector',  base:600,   rate:8,      color:'#ffd45c', flavor:'Drinks sunlight, sweats stardust.' },
+  { id:'gauntlet',  name:'Plasma Gauntlet',  base:2500,  click:10,    color:'#ff7ce0', flavor:'Every punch lands like a supernova.' },
+  { id:'station',   name:'Orbital Station',  base:9000,  rate:60,     color:'#9fb2ff', flavor:'A whole crew, mining around the clock.' },
+  { id:'nebula',    name:'Nebula Harvester', base:1.1e5, rate:400,    color:'#c77dff', flavor:'Scoops stardust out of glowing clouds.' },
+  { id:'forge',     name:'Quasar Forge',     base:1.4e6, rate:2500,   color:'#3ff0ff', flavor:'Hammers raw light into pure stardust.' },
+  { id:'wormhole',  name:'Wormhole Gate',    base:2e7,   rate:16000,  color:'#7b5cff', flavor:'Imports stardust from other universes.' },
+];
+B.forEach(b => { b.img = new Image(); b.img.src = svgUrl(SVG[b.id]); });
+const MILES = [10, 25, 50, 100, 150, 200, 300];
+const CLICK_SHARE = 0.05;      // each click also earns 5% of your per-second rate
+const CRIT_CHANCE = 0.04, CRIT_MULT = 10;
+const TILT = 0.42;             // how flat the orbits look (3D tilt)
+
+const ACH = [
+  { id:'c1',     icon:'✦',  name:'First Spark',        desc:'Click the star.',                  test:() => S.clicks >= 1 },
+  { id:'c100',   icon:'👆', name:'Warmed Up',          desc:'Click 100 times.',                 test:() => S.clicks >= 100 },
+  { id:'c1k',    icon:'🖐️', name:'Click Storm',        desc:'Click 1,000 times.',               test:() => S.clicks >= 1000 },
+  { id:'c5k',    icon:'🦾', name:'Iron Finger',        desc:'Click 5,000 times.',               test:() => S.clicks >= 5000 },
+  { id:'t1k',    icon:'💫', name:'Pocket Full of Stars', desc:'Earn 1,000 stardust total.',     test:() => S.total >= 1e3 },
+  { id:'t100k',  icon:'🌟', name:'Starlight Baron',    desc:'Earn 100K stardust total.',        test:() => S.total >= 1e5 },
+  { id:'t10m',   icon:'🌌', name:'Galactic Tycoon',    desc:'Earn 10M stardust total.',         test:() => S.total >= 1e7 },
+  { id:'t1b',    icon:'👑', name:'Lord of Light',      desc:'Earn 1B stardust total.',          test:() => S.total >= 1e9 },
+  { id:'t1t',    icon:'🪐', name:'Universe Owner',     desc:'Earn 1T stardust total.',          test:() => S.total >= 1e12 },
+  { id:'auto',   icon:'🤖', name:'Automation',         desc:'Buy your first Dust Drone.',       test:() => own('drone') >= 1 },
+  { id:'own10',  icon:'🔟', name:'Fleet',              desc:'Own 10 of any machine.',           test:() => B.some(b => own(b.id) >= 10) },
+  { id:'own50',  icon:'🏭', name:'Armada',             desc:'Own 50 of any machine.',           test:() => B.some(b => own(b.id) >= 50) },
+  { id:'all',    icon:'🧩', name:'Full Set',           desc:'Own at least one of every machine.', test:() => B.every(b => own(b.id) >= 1) },
+  { id:'r1k',    icon:'⚙️', name:'Industrial',         desc:'Reach 1K stardust per second.',    test:() => perSec() >= 1e3 },
+  { id:'r1m',    icon:'🚀', name:'Hyperdrive',         desc:'Reach 1M stardust per second.',    test:() => perSec() >= 1e6 },
+  { id:'crit',   icon:'💥', name:'Lucky Strike',       desc:'Land a critical click.',           test:() => S.crits >= 1 },
+  { id:'crit25', icon:'🎯', name:'Critical Mass',      desc:'Land 25 critical clicks.',         test:() => S.crits >= 25 },
+  { id:'combo50',icon:'🔥', name:'In the Zone',        desc:'Reach a 50 click combo.',          test:() => S.bestCombo >= 50 },
+  { id:'combo100',icon:'⚡', name:'Unstoppable',       desc:'Max out your combo (100).',        test:() => S.bestCombo >= 100 },
+  { id:'comet',  icon:'☄️', name:'Comet Catcher',      desc:'Catch a golden comet.',            test:() => S.comets >= 1 },
+  { id:'comet10',icon:'🌠', name:'Comet Collector',    desc:'Catch 10 golden comets.',          test:() => S.comets >= 10 },
 ];
 
-let state = { dust:0, owned:{} };
-try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s) state = s; } catch {}
+/* =====================================================================
+   Save / load
+   ===================================================================== */
+const SAVE_KEY = 'starForgeSave_v1';
+let S = { dust:0, total:0, owned:{}, seen:{}, ach:{}, clicks:0, crits:0, comets:0, bestCombo:0, muted:false, last:Date.now() };
+try {
+  const saved = JSON.parse(localStorage.getItem(SAVE_KEY));
+  if (saved) { S = Object.assign(S, saved); if (!saved.total) S.total = S.dust; }
+} catch {}
+function save() { S.last = Date.now(); localStorage.setItem(SAVE_KEY, JSON.stringify(S)); }
 
-const $ = id => document.getElementById(id);
-const fmt = n => n < 1000 ? Math.floor(n).toString()
-  : n.toLocaleString('en-US', { notation:'compact', maximumFractionDigits:2 });
-const owned = id => state.owned[id] || 0;
-const cost = u => Math.ceil(u.base * Math.pow(1.15, owned(u.id)));
-const perClick = () => 1 + UPGRADES.reduce((s,u) => s + (u.click||0)*owned(u.id), 0);
-const perSec   = () => UPGRADES.reduce((s,u) => s + (u.rate||0)*owned(u.id), 0);
-
-// Build shop
-UPGRADES.forEach(u => {
-  const b = document.createElement('button');
-  b.className = 'item'; b.id = 'up-' + u.id;
-  b.innerHTML = `<span><b>${u.name}</b><small>${u.desc}</small><br><span class="cost"></span></span><span class="owned"></span>`;
-  b.onclick = () => { const c = cost(u); if (state.dust >= c) { state.dust -= c; state.owned[u.id] = owned(u.id) + 1; render(); save(); } };
-  $('shop').appendChild(b);
-});
-
-$('star').addEventListener('click', e => {
-  const gain = perClick();
-  state.dust += gain;
-  const p = document.createElement('div');
-  p.className = 'pop'; p.textContent = '+' + fmt(gain);
-  p.style.left = (e.clientX - 10) + 'px'; p.style.top = (e.clientY - 20) + 'px';
-  document.body.appendChild(p); setTimeout(() => p.remove(), 800);
-  render();
-});
-
-$('reset').onclick = () => { if (confirm('Erase all progress?')) { state = { dust:0, owned:{} }; save(); render(); } };
-
-function render() {
-  $('count').textContent = fmt(state.dust);
-  $('rate').textContent = `${fmt(perSec())} stardust / sec · ${fmt(perClick())} per click`;
-  UPGRADES.forEach(u => {
-    const b = $('up-' + u.id), c = cost(u);
-    b.disabled = state.dust < c;
-    b.querySelector('.cost').textContent = 'Cost: ' + fmt(c);
-    b.querySelector('.owned').textContent = owned(u.id);
-  });
-  document.title = fmt(state.dust) + ' stardust — Star Forge';
+/* =====================================================================
+   Economy
+   ===================================================================== */
+const own = id => S.owned[id] || 0;
+const mult = b => 2 ** MILES.filter(m => own(b.id) >= m).length;
+const buffs = { storm:0, frenzy:0 };      // timestamps (ms) when each buff ends
+const stormOn  = () => performance.now() < buffs.storm;
+const frenzyOn = () => performance.now() < buffs.frenzy;
+const perSec   = () => B.reduce((s, b) => s + (b.rate || 0) * own(b.id) * mult(b), 0) * (stormOn() ? 7 : 1);
+const perClick = () => (1 + B.reduce((s, b) => s + (b.click || 0) * own(b.id) * mult(b), 0) + perSec() * CLICK_SHARE) * (frenzyOn() ? 15 : 1);
+const costN = (b, n) => Math.ceil(b.base * 1.15 ** own(b.id) * (1.15 ** n - 1) / 0.15);
+let buyMode = '1';
+function buyCount(b) {
+  if (buyMode !== 'max') return +buyMode;
+  const first = b.base * 1.15 ** own(b.id);
+  return Math.max(0, Math.floor(Math.log(S.dust * 0.15 / first + 1) / Math.log(1.15)));
 }
-function save() { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); }
 
-// Game loop: 10 ticks/sec, autosave every 5s
-let last = performance.now();
-setInterval(() => { const now = performance.now(); state.dust += perSec() * (now - last) / 1000; last = now; render(); }, 100);
+const SUF = ['', 'K', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc', 'No', 'Dc'];
+function fmt(n) {
+  if (n < 1000) return n < 10 && n % 1 ? n.toFixed(1) : Math.floor(n).toString();
+  const i = Math.min(SUF.length - 1, Math.floor(Math.log10(n) / 3));
+  const v = n / 10 ** (i * 3);
+  return (v < 10 ? v.toFixed(2) : v < 100 ? v.toFixed(1) : Math.floor(v)) + SUF[i];
+}
+
+/* =====================================================================
+   Sound (synthesized with Web Audio — no sound files needed)
+   ===================================================================== */
+const SFX = {
+  ctx:null, master:null, nbuf:null,
+  init() {
+    if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
+    const C = window.AudioContext || window.webkitAudioContext; if (!C) return;
+    this.ctx = new C();
+    this.master = this.ctx.createGain(); this.master.gain.value = 0.35;
+    const comp = this.ctx.createDynamicsCompressor();
+    this.master.connect(comp); comp.connect(this.ctx.destination);
+    this.nbuf = this.ctx.createBuffer(1, this.ctx.sampleRate, this.ctx.sampleRate);
+    const d = this.nbuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  },
+  tone(f, dur, { type='sine', vol=.4, delay=0, slide=0, attack=.004 } = {}) {
+    if (!this.ctx || S.muted) return;
+    const t = this.ctx.currentTime + delay, o = this.ctx.createOscillator(), g = this.ctx.createGain();
+    o.type = type; o.frequency.setValueAtTime(f, t);
+    if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, f * slide), t + dur);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + attack);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(this.master); o.start(t); o.stop(t + dur + .05);
+  },
+  noise(dur, { vol=.25, delay=0, freq=3000 } = {}) {
+    if (!this.ctx || S.muted) return;
+    const t = this.ctx.currentTime + delay, s = this.ctx.createBufferSource(), f = this.ctx.createBiquadFilter(), g = this.ctx.createGain();
+    s.buffer = this.nbuf; f.type = 'bandpass'; f.frequency.value = freq;
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    s.connect(f); f.connect(g); g.connect(this.master); s.start(t); s.stop(t + dur);
+  },
+  // Click pitch climbs a pentatonic scale as your combo grows.
+  click(combo) {
+    const scale = [0, 2, 4, 7, 9, 12, 14, 16, 19, 21, 24, 26, 28];
+    const step = scale[Math.min(scale.length - 1, Math.floor(combo / 8))];
+    const f = 392 * 2 ** ((step + rand(-.15, .15)) / 12);
+    this.tone(f, .14, { type:'triangle', vol:.32 });
+    this.tone(f * 2, .07, { vol:.1 });
+  },
+  crit()  { this.tone(660, .3, { type:'square', vol:.1, slide:2.2 }); this.tone(1320, .35, { type:'triangle', vol:.3, delay:.05 }); this.noise(.3, { vol:.25, freq:5000 }); },
+  buy()   { [523, 659, 784].forEach((f, i) => this.tone(f, .16, { type:'triangle', vol:.28, delay:i * .055 })); this.noise(.08, { vol:.08, freq:8000, delay:.1 }); },
+  deny()  { this.tone(150, .14, { type:'sawtooth', vol:.1, slide:.6 }); },
+  mile()  { [392, 523, 659, 784, 1047].forEach((f, i) => this.tone(f, .3, { type:'triangle', vol:.25, delay:i * .07 })); },
+  ach()   { [523, 659, 784, 1047].forEach((f, i) => this.tone(f, .4, { type:'triangle', vol:.28, delay:i * .1 })); this.tone(1568, .7, { vol:.12, delay:.4 }); this.noise(.5, { vol:.06, freq:9000, delay:.4 }); },
+  comet() { this.tone(900, 1.2, { vol:.1, slide:2, attack:.3 }); this.tone(1350, 1.2, { vol:.06, slide:2, attack:.3, delay:.15 }); },
+  catch() { [784, 988, 1175, 1568, 1976, 2349].forEach((f, i) => this.tone(f, .3, { vol:.22, delay:i * .045 })); this.noise(.5, { vol:.15, freq:7000 }); },
+};
+
+/* =====================================================================
+   Canvas + effects
+   ===================================================================== */
+const stage = $('stage'), cv = $('fx'), ctx = cv.getContext('2d');
+let W, H, cx, cy, starR, rMin, rMax, bgGrad;
+function resize() {
+  const r = stage.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
+  W = r.width; H = r.height; cv.width = W * dpr; cv.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  cx = W / 2; cy = Math.max(H * 0.58, 240);
+  starR = Math.max(55, Math.min(95, Math.min(W, H) * 0.13));
+  rMin = starR + 40;
+  rMax = Math.max(rMin + 90, Math.min(W / 2 - 30, (cy - 160) / TILT, (H - cy - 30) / TILT));
+  bgGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(W, H));
+  bgGrad.addColorStop(0, '#1c1f4a'); bgGrad.addColorStop(.45, '#0d1029'); bgGrad.addColorStop(1, '#05060f');
+}
+addEventListener('resize', resize); resize();
+
+const BG = Array.from({ length:220 }, () => ({ x:Math.random(), y:Math.random(), z:Math.random(), p:Math.random() * 6.3 }));
+let particles = [], waves = [], floats = [];
+let starScale = 1, starVel = 0, shake = 0, hoverStar = false;
+let combo = 0, lastClick = 0;
+const lastBuy = {};
+const orbitR = i => rMin + (rMax - rMin) * i / (B.length - 1);
+const easeOutBack = x => 1 + 2.7 * (x - 1) ** 3 + 1.7 * (x - 1) ** 2;
+
+function burst(x, y, n, colors, speed = 260) {
+  for (let i = 0; i < n && particles.length < 700; i++) {
+    const a = rand(0, 6.283), sp = rand(.25, 1) * speed;
+    particles.push({ x, y, vx:Math.cos(a) * sp, vy:Math.sin(a) * sp, life:1, dec:1 / rand(.45, 1.1), size:rand(1.5, 4), color:pick(colors) });
+  }
+}
+function floatText(x, y, text, color = '#ffcc4d', size = 22) { floats.push({ x, y, text, color, size, life:1 }); }
+
+// Every machine you own is drawn orbiting the star (up to 12 per type).
+function orbiters(t) {
+  const out = [], now = performance.now();
+  B.forEach((b, i) => {
+    const o = own(b.id); if (!o) return;
+    const n = Math.min(o, 12), r = orbitR(i), sp = (0.42 / (1 + i * 0.3)) * (i % 2 ? -1 : 1), base = 22 + i * 1.6;
+    for (let k = 0; k < n; k++) {
+      const a = t * sp + k * 6.283 / n + i * 0.9, s = Math.sin(a);
+      let sc = 0.75 + 0.25 * (s + 1) / 2;
+      const age = (now - (lastBuy[b.id] || -1e9)) / 600;
+      if (k === n - 1 && age < 1) sc *= Math.max(0.01, easeOutBack(age));
+      out.push({ b, i, x:cx + Math.cos(a) * r, y:cy + s * r * TILT, depth:s, size:base * sc, alpha:0.5 + 0.5 * (s + 1) / 2 });
+    }
+  });
+  return out;
+}
+
+// Golden comet: flies past every minute or two. Catch it for a bonus.
+let comet = null, nextComet = performance.now() + rand(25e3, 45e3);
+function spawnComet() {
+  const left = Math.random() < .5, y = rand(H * .2, H * .55);
+  comet = { x:left ? -60 : W + 60, y, vx:(left ? 1 : -1) * (W + 120) / rand(7, 10), vy:rand(-20, 20), t:0 };
+  SFX.comet();
+}
+function catchComet() {
+  const { x, y } = comet; comet = null; nextComet = performance.now() + rand(60e3, 120e3);
+  S.comets++; SFX.catch(); shake = 10;
+  burst(x, y, 80, ['#ffcc4d', '#fff6c9', '#ff8a3d', '#ffffff'], 420);
+  waves.push({ x, y, r:10, life:1, color:'255,204,77' });
+  const roll = Math.random(), now = performance.now();
+  if (roll < .4) { buffs.storm = now + 20e3; floatText(x, y, 'STARDUST STORM! ×7 for 20s', '#ffcc4d', 24); toast('☄️', 'Stardust Storm!', 'Production ×7 for 20 seconds', 'Comet'); }
+  else if (roll < .7) { buffs.frenzy = now + 12e3; floatText(x, y, 'CLICK FRENZY! ×15 for 12s', '#ff7ce0', 24); toast('☄️', 'Click Frenzy!', 'Clicks ×15 for 12 seconds', 'Comet'); }
+  else { const g = Math.max(perSec() * 90, perClick() * 40, 25); gain(g); floatText(x, y, 'LUCKY HAUL! +' + fmt(g), '#ffcc4d', 24); toast('☄️', 'Lucky Haul!', '+' + fmt(g) + ' stardust', 'Comet'); }
+  save();
+}
+
+function gain(n) { S.dust += n; S.total += n; }
+
+function doClick(x, y) {
+  SFX.init();
+  const now = performance.now();
+  combo = Math.min(100, combo + 1); lastClick = now; S.bestCombo = Math.max(S.bestCombo, Math.floor(combo));
+  let g = perClick() * (1 + combo / 100);
+  const crit = Math.random() < CRIT_CHANCE;
+  if (crit) {
+    g *= CRIT_MULT; S.crits++; shake = 14; starVel -= 9; SFX.crit();
+    burst(x, y, 55, ['#ffcc4d', '#ffffff', '#ff8a3d', '#ff5c5c'], 480);
+    waves.push({ x:cx, y:cy, r:starR, life:1, color:'255,120,80' });
+    floatText(x, y - 10, 'CRIT! +' + fmt(g), '#ff8a5c', 32);
+  } else {
+    starVel -= 4; SFX.click(combo);
+    burst(x, y, 14, ['#ffcc4d', '#fff6c9', '#ffb84d'], 240);
+    waves.push({ x:cx, y:cy, r:starR, life:.7, color:'255,204,77' });
+    floatText(x + rand(-10, 10), y - 10, '+' + fmt(g));
+  }
+  gain(g); S.clicks++;
+  $('count').classList.add('kick'); setTimeout(() => $('count').classList.remove('kick'), 80);
+}
+
+function localPos(e) { const r = cv.getBoundingClientRect(); return { x:e.clientX - r.left, y:e.clientY - r.top }; }
+const onStar = (x, y) => Math.hypot(x - cx, y - cy) < starR * starScale * 1.08;
+const onComet = (x, y) => comet && Math.hypot(x - comet.x, y - comet.y) < 40;
+cv.addEventListener('pointerdown', e => {
+  const { x, y } = localPos(e); SFX.init();
+  if (onComet(x, y)) catchComet(); else if (onStar(x, y)) doClick(x, y);
+});
+cv.addEventListener('pointermove', e => {
+  const { x, y } = localPos(e); hoverStar = onStar(x, y);
+  cv.style.cursor = hoverStar || onComet(x, y) ? 'pointer' : 'default';
+});
+addEventListener('keydown', e => {
+  if ((e.code === 'Space' || e.code === 'Enter') && !e.repeat && !(e.target instanceof HTMLButtonElement)) {
+    e.preventDefault(); doClick(cx + rand(-starR * .5, starR * .5), cy + rand(-starR * .5, starR * .5));
+  }
+});
+
+/* ---------- Drawing ---------- */
+function drawOrbiter(o) {
+  ctx.globalAlpha = o.alpha;
+  ctx.globalCompositeOperation = 'lighter';
+  const g = ctx.createRadialGradient(o.x, o.y, 0, o.x, o.y, o.size);
+  g.addColorStop(0, o.b.color + '55'); g.addColorStop(1, o.b.color + '00');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(o.x, o.y, o.size, 0, 6.283); ctx.fill();
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.drawImage(o.b.img, o.x - o.size / 2, o.y - o.size / 2, o.size, o.size);
+  ctx.globalAlpha = 1;
+}
+
+function drawStar(t) {
+  const r = starR * starScale;
+  ctx.globalCompositeOperation = 'lighter';
+  let g = ctx.createRadialGradient(cx, cy, r * .4, cx, cy, r * 3.2);
+  g.addColorStop(0, `rgba(255,170,60,${stormOn() ? .55 : .35})`); g.addColorStop(1, 'rgba(255,120,40,0)');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, r * 3.2, 0, 6.283); ctx.fill();
+  // rotating corona rays
+  ctx.save(); ctx.translate(cx, cy); ctx.rotate(t * .12);
+  for (let i = 0; i < 18; i++) {
+    const a = i * 6.283 / 18, len = r * (1.45 + .3 * Math.sin(t * 2.2 + i * 1.7)), w = .09;
+    ctx.fillStyle = i % 2 ? 'rgba(255,210,120,.09)' : 'rgba(255,160,80,.07)';
+    ctx.beginPath(); ctx.moveTo(Math.cos(a - w) * r * .9, Math.sin(a - w) * r * .9);
+    ctx.lineTo(Math.cos(a) * len, Math.sin(a) * len); ctx.lineTo(Math.cos(a + w) * r * .9, Math.sin(a + w) * r * .9); ctx.fill();
+  }
+  ctx.restore();
+  ctx.globalCompositeOperation = 'source-over';
+  // body
+  g = ctx.createRadialGradient(cx - r * .28, cy - r * .32, r * .05, cx, cy, r);
+  g.addColorStop(0, '#fffbe6'); g.addColorStop(.32, '#ffd35c'); g.addColorStop(.72, '#ff8a3d'); g.addColorStop(1, '#b8431d');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 6.283); ctx.fill();
+  // slow surface swirl
+  ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, r, 0, 6.283); ctx.clip();
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 4; i++) {
+    const a = t * (.3 + i * .1) + i * 1.6, px = cx + Math.cos(a) * r * .45, py = cy + Math.sin(a * 1.3) * r * .4;
+    const sg = ctx.createRadialGradient(px, py, 0, px, py, r * .5);
+    sg.addColorStop(0, 'rgba(255,240,180,.18)'); sg.addColorStop(1, 'rgba(255,240,180,0)');
+    ctx.fillStyle = sg; ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+  }
+  ctx.restore(); ctx.globalCompositeOperation = 'source-over';
+  if (hoverStar) { ctx.strokeStyle = 'rgba(255,240,200,.35)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, r + 6, 0, 6.283); ctx.stroke(); }
+  // combo ring
+  if (combo >= 2) {
+    const f = combo / 100;
+    ctx.lineCap = 'round'; ctx.lineWidth = 6;
+    ctx.strokeStyle = 'rgba(255,255,255,.08)'; ctx.beginPath(); ctx.arc(cx, cy, r + 16, 0, 6.283); ctx.stroke();
+    ctx.strokeStyle = combo >= 100 ? `hsl(${(t * 300) % 360},100%,65%)` : `rgba(255,${Math.floor(220 - f * 120)},77,.95)`;
+    ctx.beginPath(); ctx.arc(cx, cy, r + 16, -Math.PI / 2, -Math.PI / 2 + f * 6.283); ctx.stroke();
+    ctx.font = '800 15px system-ui,Segoe UI,sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#ffe9a8';
+    ctx.fillText(`COMBO ${Math.floor(combo)}  ·  ×${(1 + combo / 100).toFixed(2)}`, cx, cy + r + 44);
+  } else if (S.clicks < 5) {
+    ctx.font = '700 16px system-ui,Segoe UI,sans-serif'; ctx.textAlign = 'center';
+    ctx.fillStyle = `rgba(238,240,255,${.5 + .4 * Math.sin(t * 4)})`;
+    ctx.fillText('Click the star!', cx, cy + r + 44);
+  }
+}
+
+function drawComet(t) {
+  if (!comet) return;
+  ctx.globalCompositeOperation = 'lighter';
+  const pulse = 1 + .15 * Math.sin(t * 10), r = 30 * pulse;
+  const g = ctx.createRadialGradient(comet.x, comet.y, 0, comet.x, comet.y, r * 2);
+  g.addColorStop(0, 'rgba(255,240,180,1)'); g.addColorStop(.25, 'rgba(255,204,77,.8)'); g.addColorStop(1, 'rgba(255,140,40,0)');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(comet.x, comet.y, r * 2, 0, 6.283); ctx.fill();
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(comet.x, comet.y, 7, 0, 6.283); ctx.fill();
+}
+
+let prev = performance.now(), shownDust = S.dust;
+function frame(now) {
+  const real = (now - prev) / 1000, dt = Math.min(real, .05); prev = now;
+  const t = now / 1000;
+
+  // production uses real elapsed time, so nothing is lost if the window was hidden
+  gain(perSec() * Math.min(real, 3600));
+
+  // physics
+  starVel += (-(starScale - (hoverStar ? 1.04 : 1)) * 320 - starVel * 16) * dt; starScale += starVel * dt;
+  if (starScale < .8) { starScale = .8; starVel = Math.max(starVel, 0); }
+  starScale = Math.min(starScale, 1.25);
+  if (now - lastClick > 700) combo = Math.max(0, combo - 25 * dt);
+  shake *= Math.pow(.02, dt);
+  for (const p of particles) {
+    if (p.feed) { p.x += (cx - p.x) * dt * 2.2; p.y += (cy - p.y) * dt * 2.2; if (Math.hypot(p.x - cx, p.y - cy) < starR * .9) p.life = 0; }
+    else { p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= Math.pow(.15, dt); p.vy *= Math.pow(.15, dt); p.vy += 40 * dt; }
+    p.life -= p.dec * dt;
+  }
+  particles = particles.filter(p => p.life > 0);
+  for (const w of waves) { w.r += 300 * dt; w.life -= 1.6 * dt; }
+  waves = waves.filter(w => w.life > 0);
+  for (const f of floats) { f.y -= 70 * dt; f.life -= dt * .9; }
+  floats = floats.filter(f => f.life > 0);
+  if (!comet && now > nextComet) spawnComet();
+  if (comet) {
+    comet.x += comet.vx * dt; comet.y += comet.vy * dt;
+    if (particles.length < 700) for (let i = 0; i < 3; i++)
+      particles.push({ x:comet.x, y:comet.y, vx:-comet.vx * rand(.05, .2) + rand(-20, 20), vy:rand(-20, 20), life:1, dec:1.4, size:rand(2, 5), color:pick(['#ffcc4d', '#fff6c9', '#ff8a3d']) });
+    if (comet.x < -100 || comet.x > W + 100) { comet = null; nextComet = now + rand(60e3, 120e3); }
+  }
+
+  // --- draw ---
+  ctx.setTransform(ctx.getTransform().a, 0, 0, ctx.getTransform().d, 0, 0);
+  ctx.save();
+  if (shake > .3) ctx.translate(rand(-shake, shake), rand(-shake, shake));
+  ctx.fillStyle = bgGrad; ctx.fillRect(-20, -20, W + 40, H + 40);
+  for (const s of BG) {
+    const tw = .5 + .5 * Math.sin(t * (1 + s.z * 2) + s.p);
+    ctx.globalAlpha = (.15 + .65 * s.z) * (.35 + .65 * tw);
+    ctx.fillStyle = s.z > .85 ? '#ffe9b0' : '#cfd6ff';
+    const x = ((s.x * W + t * 6 * s.z) % W), sz = .8 + s.z * 1.8;
+    ctx.fillRect(x, s.y * H, sz, sz);
+  }
+  ctx.globalAlpha = 1;
+
+  // orbit paths
+  B.forEach((b, i) => {
+    if (!own(b.id)) return;
+    ctx.strokeStyle = b.color + '22'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.ellipse(cx, cy, orbitR(i), orbitR(i) * TILT, 0, 0, 6.283); ctx.stroke();
+  });
+
+  const obs = orbiters(t).sort((a, b) => a.depth - b.depth);
+  // machines that produce stardust send glowing motes into the star
+  for (const o of obs) if (o.b.rate && Math.random() < dt * 0.9 && particles.length < 700)
+    particles.push({ x:o.x, y:o.y, feed:true, life:1, dec:.5, size:rand(1.5, 2.8), color:o.b.color });
+
+  for (const o of obs) if (o.depth < 0) drawOrbiter(o);
+  drawStar(t);
+  for (const w of waves) {
+    ctx.strokeStyle = `rgba(${w.color},${w.life * .6})`; ctx.lineWidth = 3 * w.life + 1;
+    ctx.beginPath(); ctx.arc(w.x, w.y, w.r, 0, 6.283); ctx.stroke();
+  }
+  for (const o of obs) if (o.depth >= 0) drawOrbiter(o);
+
+  ctx.globalCompositeOperation = 'lighter';
+  for (const p of particles) {
+    ctx.globalAlpha = Math.max(0, p.life); ctx.fillStyle = p.color;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.size * (p.feed ? 1 : p.life), 0, 6.283); ctx.fill();
+  }
+  ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  drawComet(t);
+
+  ctx.textAlign = 'center'; ctx.lineJoin = 'round';
+  for (const f of floats) {
+    const pop = f.life > .85 ? 1 + (f.life - .85) * 3 : 1;
+    ctx.font = `900 ${f.size * pop}px system-ui,Segoe UI,sans-serif`;
+    ctx.globalAlpha = Math.min(1, f.life * 1.5);
+    ctx.strokeStyle = '#0008'; ctx.lineWidth = 4; ctx.strokeText(f.text, f.x, f.y);
+    ctx.fillStyle = f.color; ctx.fillText(f.text, f.x, f.y);
+  }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+
+  // smooth counter
+  shownDust += (S.dust - shownDust) * Math.min(1, dt * 12);
+  if (Math.abs(S.dust - shownDust) < 1) shownDust = S.dust;
+  $('count').firstChild.nodeValue = fmt(shownDust);
+
+  requestAnimationFrame(frame);
+}
+
+/* =====================================================================
+   UI: shop, achievements, toasts
+   ===================================================================== */
+function toast(icon, title, sub, kind = 'Achievement') {
+  const el = document.createElement('div'); el.className = 'toast';
+  el.innerHTML = `<div class="ti">${icon}</div><div><small>${kind}</small><b>${title}</b><span>${sub}</span></div>`;
+  $('toasts').appendChild(el);
+  setTimeout(() => el.classList.add('out'), 3400); setTimeout(() => el.remove(), 3800);
+}
+
+const shopEls = {};
+B.forEach(b => {
+  const el = document.createElement('button'); el.className = 'item';
+  el.innerHTML = `<div class="icon"><img src="${svgUrl(SVG[b.id])}" alt=""></div>
+    <div class="info"><div class="name"></div><div class="desc"></div><div class="mile"></div><div class="cost"></div></div>
+    <div class="owned"></div>`;
+  el.onclick = () => buy(b);
+  $('shop').appendChild(el);
+  shopEls[b.id] = { el, name:el.querySelector('.name'), desc:el.querySelector('.desc'), mile:el.querySelector('.mile'), cost:el.querySelector('.cost'), owned:el.querySelector('.owned') };
+});
+
+function animate(el, cls) { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
+
+function buy(b) {
+  SFX.init();
+  const e = shopEls[b.id];
+  if (!S.seen[b.id]) return;
+  const n = buyCount(b);
+  if (n < 1 || S.dust < costN(b, n)) { SFX.deny(); animate(e.el, 'nope'); return; }
+  const before = own(b.id);
+  S.dust -= costN(b, n); S.owned[b.id] = before + n; lastBuy[b.id] = performance.now();
+  SFX.buy(); animate(e.el, 'bump');
+  const ob = orbiters(performance.now() / 1000).filter(o => o.b === b).pop();
+  if (ob) { burst(ob.x, ob.y, 30, [b.color, '#ffffff'], 260); waves.push({ x:ob.x, y:ob.y, r:6, life:.8, color:'200,210,255' }); }
+  const crossed = MILES.filter(m => before < m && m <= before + n).length;
+  if (crossed) {
+    setTimeout(() => SFX.mile(), 150);
+    toast(`<img src="${svgUrl(SVG[b.id])}" alt="">`, `${b.name} upgraded!`, `Output ×${2 ** crossed} (now ×${mult(b)})`, 'Milestone');
+  }
+  updateShop(); save();
+}
+
+function updateShop() {
+  B.forEach(b => {
+    const e = shopEls[b.id], o = own(b.id);
+    if (!S.seen[b.id] && (o > 0 || S.total >= b.base * 0.3)) S.seen[b.id] = true;
+    const seen = S.seen[b.id], n = buyCount(b), c = costN(b, Math.max(1, n)), m = mult(b);
+    e.el.classList.toggle('locked', !seen);
+    e.el.classList.toggle('afford', seen && n >= 1 && S.dust >= c);
+    e.el.classList.toggle('poor', seen && !(n >= 1 && S.dust >= c));
+    e.el.title = seen ? b.flavor : '';
+    e.name.textContent = seen ? b.name : '???';
+    if (seen) {
+      const each = (b.click || b.rate) * m;
+      e.desc.textContent = b.click ? `+${fmt(each)} per click each` + (o ? ` · +${fmt(each * o)} total` : '')
+                                   : `+${fmt(each)}/s each` + (o ? ` · ${fmt(each * o * (stormOn() ? 7 : 1))}/s total` : '');
+      const next = MILES.find(x => x > o);
+      e.mile.textContent = (m > 1 ? `Boosted ×${m} · ` : '') + (next ? `×2 output at ${next} owned` : 'Fully upgraded');
+      e.cost.textContent = '✦ ' + fmt(c) + (n > 1 ? `  (buy ${n})` : '');
+    } else { e.desc.textContent = 'Gather more stardust to reveal.'; e.mile.textContent = ''; e.cost.textContent = '✦ ' + fmt(c); }
+    e.owned.textContent = o || '';
+  });
+}
+
+const achEls = {};
+ACH.forEach(a => {
+  const el = document.createElement('div'); el.className = 'ach'; el.textContent = a.icon;
+  el.onmouseenter = () => $('achInfo').innerHTML = `<b>${S.ach[a.id] ? a.name : '🔒 ' + a.name}</b><br>${a.desc}`;
+  $('achs').appendChild(el); achEls[a.id] = el;
+});
+function renderAch() {
+  let got = 0;
+  ACH.forEach(a => { const has = !!S.ach[a.id]; got += has; achEls[a.id].className = 'ach ' + (has ? 'got' : 'lock'); });
+  $('achCount').textContent = `${got}/${ACH.length}`;
+}
+function checkAch() {
+  let delay = 0;
+  ACH.forEach(a => {
+    if (!S.ach[a.id] && a.test()) {
+      S.ach[a.id] = Date.now();
+      setTimeout(() => { toast(a.icon, a.name, a.desc); SFX.ach(); }, delay); delay += 600;
+    }
+  });
+  if (delay) { renderAch(); save(); }
+}
+
+function updateHud() {
+  const ps = perSec(), pc = perClick();
+  $('rate').innerHTML = `<b>${fmt(ps)}</b> per second · <b>${fmt(pc)}</b> per click`;
+  const now = performance.now(), chips = [];
+  if (now < buffs.storm) chips.push(`☄️ Storm ×7 · ${Math.ceil((buffs.storm - now) / 1000)}s`);
+  if (now < buffs.frenzy) chips.push(`⚡ Frenzy ×15 · ${Math.ceil((buffs.frenzy - now) / 1000)}s`);
+  const html = chips.map(c => `<span class="buff">${c}</span>`).join('');
+  if ($('buffs').innerHTML !== html) $('buffs').innerHTML = html;
+  $('stats').textContent = `Total earned ${fmt(S.total)} · ${S.clicks.toLocaleString()} clicks · ${S.crits} crits · best combo ${S.bestCombo}`;
+  document.title = fmt(S.dust) + ' stardust · Star Forge';
+}
+
+/* ---------- Controls ---------- */
+document.querySelectorAll('.tabs button').forEach(btn => btn.onclick = () => {
+  document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === btn));
+  const shop = btn.dataset.tab === 'shop';
+  $('shopWrap').hidden = !shop; $('buyAmt').style.display = shop ? '' : 'none'; $('achWrap').hidden = shop;
+});
+document.querySelectorAll('#buyAmt button').forEach(btn => btn.onclick = () => {
+  buyMode = btn.dataset.n;
+  document.querySelectorAll('#buyAmt button').forEach(x => x.classList.toggle('on', x === btn));
+  updateShop();
+});
+function renderMute() { $('mute').textContent = S.muted ? '🔇 Sound off' : '🔊 Sound on'; }
+$('mute').onclick = () => { S.muted = !S.muted; renderMute(); SFX.init(); if (!S.muted) SFX.buy(); save(); };
+$('reset').onclick = () => {
+  if (!confirm('Erase ALL progress, machines and achievements?')) return;
+  const muted = S.muted; localStorage.removeItem(SAVE_KEY);
+  localStorage.setItem(SAVE_KEY, JSON.stringify({ muted })); location.reload();
+};
+
+/* ---------- Offline earnings ---------- */
+(function offline() {
+  const away = Math.min((Date.now() - (S.last || Date.now())) / 1000, 8 * 3600);
+  const earned = perSec() * away * 0.5;
+  if (away < 30 || earned < 1) return;
+  gain(earned);   // credited right away, so closing the game without clicking can't lose it
+  $('offAmt').textContent = '+' + fmt(earned) + ' ✦';
+  $('modal').hidden = false;
+  $('collect').onclick = () => {
+    SFX.init(); $('modal').hidden = true; SFX.catch();
+    burst(cx, cy, 90, ['#ffcc4d', '#fff6c9', '#ff8a3d'], 420); shake = 8; save();
+  };
+})();
+
+/* ---------- Start ---------- */
+renderMute(); renderAch(); updateShop(); updateHud();
+setInterval(() => { updateShop(); updateHud(); }, 120);
+setInterval(checkAch, 500);
 setInterval(save, 5000);
-window.addEventListener('beforeunload', save);
-render();
+addEventListener('beforeunload', save);
+document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
+save();
+requestAnimationFrame(frame);
 </script>
 </body>
 </html>
